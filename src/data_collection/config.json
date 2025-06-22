@@ -1,0 +1,21 @@
+{
+  "labels": ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"],
+  "data": "data",
+  "landmarks": "../../data/landmark_sequences",
+  "images": "../../data/image_data",
+  "camera": {
+    "index": 0,
+    "width": 640,
+    "height": 480
+  },
+  "collection": {
+    "sequence_len": 30,
+    "def_samples": 30,
+    "def_delay": 3
+  },
+  "mediapipe": {
+    "max_hands": 2,
+    "min_detection_confidence": 0.7,
+    "min_tracking_confidence": 0.5
+  }
+}
