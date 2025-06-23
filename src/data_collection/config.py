@@ -6,14 +6,16 @@ import cv2
 
 class Config:
     
-    def __init__(self, config_path: str = "config.json"): 
+    def __init__(self, config_path: str = "./config.json"): 
         self.config_path = config_path
         self._load_config()
 
     def _load_config(self):
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(script_dir, self.config_path)
         JSONDATA: Dict[str, Any] = {}
         try:
-            with open(self.config_path, "r") as f:
+            with open(config_path, "r") as f:
                 JSONDATA = json.load(f)
             
             self.LABELS = JSONDATA["labels"]

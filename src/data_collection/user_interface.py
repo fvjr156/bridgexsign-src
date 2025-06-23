@@ -1,20 +1,26 @@
 from tkinter import StringVar, IntVar, Tk, messagebox, Label, OptionMenu, Entry, Button
 from typing import Any
-from observers import AbstractObserver
-from config import Config
-from engine import DataCollectionEngine
+
+import cv2
+from data_collection.observers import AbstractObserver
+from data_collection.config import Config
+from data_collection.engine import DataCollectionEngine
 
 class ASLDataCollectorUI(AbstractObserver): # da UI
     def __init__(self, config: Config):
         self.config = config
         self.engine = DataCollectionEngine(config)
         self.engine.attach(self)
+        self.root = Tk()
+        self.root.title('ASL Data Collector')
+        self.root.geometry("400x300")
+
+
 
         self.label_var = StringVar(value=config.LABELS[0])
         self.num_samples_var = IntVar(value=config.DEFAULT_SAMPLES)
         self.delay_var = IntVar(value=config.DEFAULT_DELAY)
         
-        self.root = None
         self.start_button = None
         self.stop_button = None
         self.status_label = None
@@ -22,10 +28,6 @@ class ASLDataCollectorUI(AbstractObserver): # da UI
         self._setup_ui()
 
     def _setup_ui(self):
-        self.root = Tk()
-        self.root.title('ASL Data Collector')
-        self.root.geometry("400x300")
-
         # tanginang layout code to
         Label(
             self.root, 
@@ -108,10 +110,20 @@ class ASLDataCollectorUI(AbstractObserver): # da UI
 
 
     def _start_collection(self):
-        pass
+        if self._validate_inputs():
+            success = self.engine.start_session(
+                self.label_var.get(),
+                self.num_samples_var.get(),
+                self.delay_var.get()
+            )
+            if success:
+                self.start_button.config(state="disabled")
+                self.stop_button.config(state="normal")
 
     def _stop_collection(self):
-        pass
+        self.engine.stop_session()
+        self.start_button.config(state="normal")
+        self.stop_button.config(state="disabled")
 
     def _validate_inputs(self) -> bool:
         try:
@@ -128,13 +140,31 @@ class ASLDataCollectorUI(AbstractObserver): # da UI
         # naga-handle dito ng messages by engine
         # event_type: error, sample_completed, frame_update, session_completed
         if event_type == "error":
-            pass
+            messagebox.showerror("Error", data)
+            self.start_button.config(state="normal")
+            self.stop_button.config(state="disabled")
+            self.status_label.config(text="Error occurred - Ready to collect data")
         elif event_type == "sample_completed":
-            pass
+            session = data
+            self.status_label.config(
+                text=f"Collected {session.collected_samples}/{session.target_samples} samples"
+            )
         elif event_type == "frame_update":
-            pass
+            cv2.imshow("ASL Data Collector", data)
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q'):
+                self.engine.stop_session()
+        
         elif event_type == "session_completed":
-            pass
+            session = data
+            self.start_button.config(state="normal")
+            self.stop_button.config(state="disabled")
+            self.status_label.config(
+                text=f"Collection complete! Collected {session.collected_samples} samples"
+            )
+            messagebox.showinfo("Complete", 
+                              f"Successfully collected {session.collected_samples} samples "
+                              f"for sign '{session.label}'")
 
     def run(self):
         try:

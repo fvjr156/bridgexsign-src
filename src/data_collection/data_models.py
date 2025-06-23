@@ -23,8 +23,8 @@ class DataCollectionSession:
         self.delay = delay
         self.collected_samples = 0
         self.start = datetime.now()
-        self.sequences = List[List[np.ndarray]] = [] # type: ignore
-        self.images = List[np.ndarray] = [] # type: ignore
+        self.sequences: List[List[np.ndarray]] = [] # type: ignore
+        self.images: List[np.ndarray] = [] # type: ignore
 
     @property
     def is_complete(self) -> bool: return self.collected_samples >= self.target_samples

@@ -1,11 +1,11 @@
 from datetime import datetime
 import logging
 import os
-from config import Config
+from data_collection.config import Config
 import mediapipe as mp
 import numpy as np
 from typing import Tuple, Any, List, Optional
-from data_models import LandmarksData
+from data_collection.data_models import LandmarksData
 import cv2
 
 class HandProcessor:
@@ -48,7 +48,7 @@ class HandProcessor:
 class CameraManager:
     def __init__(self, config: Config):
         self.config = config
-        self.cap = Optional[cv2.VideoCapture] = None # type: ignore
+        self.cap: Optional[cv2.VideoCapture] = None # type: ignore
         self.is_opened = False
 
     def initialize(self) -> bool:

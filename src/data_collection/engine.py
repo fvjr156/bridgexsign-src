@@ -4,10 +4,10 @@ import time
 
 import cv2
 import numpy as np
-from observers import Subject
-from config import Config
-from core_procs import HandProcessor, CameraManager, FileManager
-from data_models import DataCollectionSession
+from data_collection.observers import Subject
+from data_collection.config import Config
+from data_collection.core_procs import HandProcessor, CameraManager, FileManager
+from data_collection.data_models import DataCollectionSession
 from typing import Optional, List
 
 class DataCollectionEngine(Subject): # data_collection's most important code
