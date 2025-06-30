@@ -1,7 +1,7 @@
-test
+test/
 .vscode
 src/data_collection_src/__pycache__
 src/inference/__pycache__
-data
-data_old
-models
+data/
+data-old/
+models/
