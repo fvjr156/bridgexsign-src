@@ -2,4 +2,10 @@ GitHub repo for:
 
 # Sign Language Detection System
 
-> Model development phase
+> Includes:
+> - Data collection code
+> - Inference code
+> - Utility
+> - Latest trained tflite model
+
+Wanna contribute? **please fork**
