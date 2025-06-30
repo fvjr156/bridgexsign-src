@@ -40,15 +40,18 @@ class Main:
                 frame_features = hands.extract_all_hand_features(results, image.shape)
                 frame_sequence.append(frame_features)
 
-                camera.putText(frame, f"Collecting: {len(frame_sequence.sequence)}/30", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (106, 255, 0), 2)
+                camera.putText(frame, f"Collecting: {len(frame_sequence.sequence)}/{frame_sequence.sequence_length}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (106, 255, 0), 2)
 
                 if frame_sequence.is_full():
                     collecting = False
                     label: str|None = UIProcess.prompt_label()
-                    if label is not None:
-                        FileProcs.save_sequence(frame_sequence.get_sequence(), label)
-                    else:
+
+                    if label == None:
                         logging.info(f"Label null. Sequence not saved.")
+                    elif label == "":
+                        logging.info(f"Label empty. Sequence not saved.")
+                    else:
+                        FileProcs.save_sequence(frame_sequence.get_sequence(), label)
 
             hands.draw(frame, results)
             cv2.imshow("demo", frame) # type: ignore
@@ -57,7 +60,7 @@ class Main:
             # to start collection, shift+s
 
             key = cv2.waitKey(1) & 0xFF
-            if key == ord('s'):
+            if key == ord('s') or key == ord(' '):
                 frame_sequence.reset() # reset every before collection
                 logging.info("Collecting sequence...")
                 collecting = True

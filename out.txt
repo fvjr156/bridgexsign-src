@@ -6,9 +6,11 @@ from typing import Optional, Tuple, Any
 class Camera:
     def __init__(self):
         self.cap: Optional[cv2.VideoCapture] = None
-        self._IDX = 0
-        self._CAM_W = 540
-        self._CAM_H = 720
+        self._IDX = 0 # 1 for obs
+        # self._CAM_W = 540
+        # self._CAM_H = 720
+        self._CAM_W = 768
+        self._CAM_H = 432
 
     def initialize(self):
         self.cap = cv2.VideoCapture(self._IDX)
@@ -37,12 +39,14 @@ class Camera:
    
 
 ===== hands.py =====
+from typing import List, Any
 import cv2
 import numpy as np
 import mediapipe as mp
 
 class Hands:
     def __init__(self):
+        self.finger_angles: List[Any] = []
         self.LEFT_HAND_COLOR = (255, 0, 0)
         self.RIGHT_HAND_COLOR = (0, 0, 255)
         self.mp_hands = mp.solutions.hands # type: ignore
@@ -51,6 +55,10 @@ class Hands:
         self.hands = self.mp_hands.Hands(
             max_num_hands = 2, min_tracking_confidence = 0.5, min_detection_confidence = 0.7
         )
+
+    @property
+    def get_finger_angles(self) -> List[Any]:
+        return self.finger_angles
 
     def draw(self, frame, results):
         # Hand Landmarks
@@ -86,8 +94,8 @@ class Hands:
         cv2.putText(frame, f"Yaw: {yaw:.1f}", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
        
         # Finger Angles
-        angles = self._compute_finger_angles(landmarks)
-        for i, angle in enumerate(angles): # type: ignore
+        self.finger_angles = self._compute_finger_angles(landmarks)
+        for i, angle in enumerate(self.finger_angles): # type: ignore
             cv2.putText(frame, f"F{i+1}:{angle:.1f}", (10, 90 + i * 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (39, 187, 255), 2)
         
 
@@ -175,14 +183,29 @@ from datetime import datetime
 
 class UIProcess:
     @staticmethod
-    def prompt_label():
+    def prompt_label() -> str|None:
         root = tk.Tk()
         root.withdraw()
-        label = simpledialog.askstring(title = "Label Input", prompt = "Enter ASL Label:")
+        label: str|None = simpledialog.askstring(title = "Label Input", prompt = "Enter ASL Label:")
+        if label is None:
+            return None
         root.destroy()
         return label
     
 class FileProcs:
+    @staticmethod
+    def count_dirs():
+        folder = os.path.join("data", "landmark_sequences")
+        os.makedirs(folder, exist_ok = True)
+        print("===== EXISTING LABELS =====")
+        f1: list[str] = os.listdir(folder)
+        if len(f1) < 1:
+            print ("None.")
+        else:
+            for label in os.listdir(folder):
+                print(f"\"{label}\": {len([f for f in os.listdir(os.path.join(folder, label)) if os.path.isfile(os.path.join(folder, label, f))])}")
+        print("===== END =====")
+
     @staticmethod
     def save_sequence(sequence, label):
         folder = os.path.join("data", "landmark_sequences", label)
@@ -202,7 +225,7 @@ import numpy as np
 class Sequence:
     def __init__(self):
         self.reset()
-        self.sequence_length = 30
+        self.sequence_length = 20
 
     def reset(self):
         self.sequence = []
@@ -233,6 +256,10 @@ from data_collection_src.hands import Hands
 from data_collection_src.sequence import Sequence
 from data_collection_src.procs import UIProcess, FileProcs
 
+# 's' to record sequence
+# 'q' to quit
+# '0' to count files
+
 class Main:
     @staticmethod
     def main():
@@ -248,6 +275,7 @@ class Main:
         frame_sequence = Sequence()
 
         camera.initialize()
+        FileProcs.count_dirs()
 
         while True:
             ret, frame, image = camera.read_frame()
@@ -260,12 +288,18 @@ class Main:
                 frame_features = hands.extract_all_hand_features(results, image.shape)
                 frame_sequence.append(frame_features)
 
-                camera.putText(frame, f"Collecting: {len(frame_sequence.sequence)}/30", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (106, 255, 0), 2)
+                camera.putText(frame, f"Collecting: {len(frame_sequence.sequence)}/{frame_sequence.sequence_length}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (106, 255, 0), 2)
 
                 if frame_sequence.is_full():
                     collecting = False
-                    label = UIProcess.prompt_label()
-                    FileProcs.save_sequence(frame_sequence.get_sequence(), label)
+                    label: str|None = UIProcess.prompt_label()
+
+                    if label == None:
+                        logging.info(f"Label null. Sequence not saved.")
+                    elif label == "":
+                        logging.info(f"Label empty. Sequence not saved.")
+                    else:
+                        FileProcs.save_sequence(frame_sequence.get_sequence(), label)
 
             hands.draw(frame, results)
             cv2.imshow("demo", frame) # type: ignore
@@ -274,10 +308,12 @@ class Main:
             # to start collection, shift+s
 
             key = cv2.waitKey(1) & 0xFF
-            if key == ord('S'):
+            if key == ord('s') or key == ord(' '):
+                frame_sequence.reset() # reset every before collection
                 logging.info("Collecting sequence...")
                 collecting = True
-                frame_sequence.reset()
+            elif key == ord('0'):
+                FileProcs.count_dirs()
             elif key == ord('Q') or cv2.getWindowProperty("demo", cv2.WND_PROP_VISIBLE) < 1:
                 break
 

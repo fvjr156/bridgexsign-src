@@ -2,3 +2,5 @@ test
 .vscode
 src/data_collection_src/__pycache__
 src/inference/__pycache__
+data
+models
