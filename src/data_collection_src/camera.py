@@ -36,3 +36,5 @@ class Camera:
     def putText(self, frame, text, point, font, size, color, thickness):
         cv2.putText(frame, text, point, font, size, color, thickness)
    
+if __name__ == '__main__':
+    for i in range(0, 100): print("DO NOT RUN THIS CODE!!! INSTEAD, RUN src/data_collection.py !!!")

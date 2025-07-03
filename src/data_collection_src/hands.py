@@ -20,43 +20,61 @@ class Hands:
         return self.finger_angles
 
     def draw(self, frame, results):
-        # Hand Landmarks
-        # draw() will draw hand landmarks for both hands
+        # draw and _draw2 will display hand landmarks (different colors), then angles and vectors for each hand present
 
-        if results.multi_hand_landmarks:
-            for idx, lm in enumerate(results.multi_hand_landmarks):
-                landmarks = np.array([[l.x, l.y, l.z] for l in lm.landmark])
-                hand_label = results.multi_handedness[idx].classification[0].label
-                self._draw2(frame, landmarks, hand_label)
-                self.mp_drawing.draw_landmarks(
-                    frame, lm, self.mp_hands.HAND_CONNECTIONS,
-                    landmark_drawing_spec = self.mp_drawing.DrawingSpec(
+        def _draw2(frame, landmarks, hand_label = None):
+            h, w, _ = frame.shape
+            points = (landmarks[:, :2] * [w, h]).astype(int)
+
+            palm_normal = self._compute_palm_normal_vector(landmarks, hand_label)
+            wrist = points[0]
+            end_pt = (wrist + (palm_normal[:2] * 100)).astype(int)
+            cv2.arrowedLine(frame, wrist, tuple(end_pt), (0, 255, 0), 2)
+
+        if not results.multi_hand_landmarks:
+            return
+        
+        hand_inf = []
+
+        for idx, lm in enumerate(results.multi_hand_landmarks):
+            landmarks = np.array([[l.x, l.y, l.z] for l in lm.landmark])
+            hand_label = results.multi_handedness[idx].classification[0].label
+
+            pitch, yaw = self._palm_orientation_angles(self._compute_palm_normal_vector(landmarks, hand_label))
+            finger_angles = self._compute_finger_angles(landmarks)
+
+            hand_inf.append({
+                "label": hand_label,
+                "landmarks": landmarks,
+                "pitch": pitch,
+                "yaw": yaw,
+                "finger_angles": finger_angles
+            })
+
+            _draw2(frame, landmarks, hand_label)
+
+            self.mp_drawing.draw_landmarks(
+                frame, lm, self.mp_hands.HAND_CONNECTIONS,
+                landmark_drawing_spec = self.mp_drawing.DrawingSpec(
                         color = self.LEFT_HAND_COLOR if (hand_label == 'Left') else self.RIGHT_HAND_COLOR,
                         thickness = 2, circle_radius = 2
-                    )
                 )
+            )
 
-    def _draw2(self, frame, landmarks, hand_label=None):
-        # _draw2() will draw vectors and angles on individual hands
+        hand_inf.sort(key = lambda x: 
+                                x["label"])
 
-        h, w, _ = frame.shape
-        points = (landmarks[:, :2] * [w, h]).astype(int)
+        x, y, spacing = 10, 50, 20
 
-        # Palm Normal Vectors
-        palm_normal = self._compute_palm_normal_vector(landmarks, hand_label)
-        wrist = points[0]
-        end_point = (wrist + (palm_normal[:2] * 100)).astype(int)
-        cv2.arrowedLine(frame, wrist, tuple(end_point), (0, 255, 0), 2)
+        pitch_text = "Pitch: " + ", ".join(f"{h['pitch']:.1f}" for h in hand_inf)
+        yaw_text = "Yaw: " + ", ".join(f"{h['yaw']:.1f}" for h in hand_inf)
+        cv2.putText(frame, pitch_text, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
+        cv2.putText(frame, yaw_text, (x, y + spacing), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
 
-        pitch, yaw = self._palm_orientation_angles(palm_normal)
-        cv2.putText(frame, f"Pitch: {pitch:.1f}", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
-        cv2.putText(frame, f"Yaw: {yaw:.1f}", (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
-       
-        # Finger Angles
-        self.finger_angles = self._compute_finger_angles(landmarks)
-        for i, angle in enumerate(self.finger_angles): # type: ignore
-            cv2.putText(frame, f"F{i+1}:{angle:.1f}", (10, 90 + i * 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (39, 187, 255), 2)
-        
+        for i in range(5):
+            angles = ", ".join(f"{h['finger_angles'][i]:.1f}" for h in hand_inf)
+            cv2.putText(frame, f"F{i+1}: {angles}", (x, y + spacing * (i + 2)),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (39, 187, 255), 2)
 
     def _compute_palm_normal_vector(self, landmarks, hand_label=None):
         wrist = landmarks[0]
@@ -130,3 +148,5 @@ class Hands:
             finger_angles
         ])
 
+if __name__ == '__main__':
+    for i in range(0, 100): print("DO NOT RUN THIS CODE!!! INSTEAD, RUN src/data_collection.py !!!")

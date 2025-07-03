@@ -16,3 +16,6 @@ class Sequence:
     
     def get_sequence(self):
         return np.array(self.sequence)
+    
+if __name__ == '__main__':
+    for i in range(0, 100): print("DO NOT RUN THIS CODE!!! INSTEAD, RUN src/data_collection.py !!!")

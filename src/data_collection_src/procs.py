@@ -42,3 +42,6 @@ class FileProcs:
         logging.info(f"Saved: {label} => {filename}")
         logging.info(f"Size of {filename}: {os.path.getsize(filename)}")
         logging.info(f"File count for {folder}: {len([f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f))])}")
+
+if __name__ == '__main__':
+    for i in range(0, 100): print("DO NOT RUN THIS CODE!!! INSTEAD, RUN src/data_collection.py !!!")
