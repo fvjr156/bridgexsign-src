@@ -2,6 +2,7 @@ test/
 .vscode
 src/data_collection_src/__pycache__
 src/inference/__pycache__
+src/data_augmentation/__pycache__
 data/
 data-old/
 models/
