@@ -15,9 +15,9 @@ from inference.sequence import Sequence
 
 class Inference:
     def __init__(self):
-        self.interpreter: tf.lite.Interpreter = tf.lite.Interpreter(model_path='./models/asl_model_lstm_quant_best_model.tflite')
+        self.interpreter: tf.lite.Interpreter = tf.lite.Interpreter(model_path='./models/asl_model_lstm_quant.tflite')
         # self.interpreter: tf.lite.Interpreter = tf.lite.Interpreter(model_path='./models/asl_model_lstm_quant.tflite')
-        self.labels: list[str] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'hello', 'i', 'iloveyou', 'j', 'k', 'l', 'm', 'n', 'no', 'o', 'p', 'please', 'q', 'r', 's', 'sorry', 't', 'thankyou', 'u', 'urwelc', 'v', 'w', 'x', 'y', 'yes', 'z']
+        self.labels: list[str] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'hello', 'i', 'iloveyou', 'j', 'k', 'l', 'm', 'n', 'no', 'o', 'p', 'please', 'q', 'r', 's', 'sorry', 't', 'thankyou', 'u', 'v', 'w', 'x', 'y', 'yes', 'z']
         # Found 34 labels: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'hello', 'i', 'iloveyou', 'j', 'k', 'l', 'm', 'n', 'no', 'o', 'p', 'please', 'q', 'r', 's', 'sorry', 't', 'thankyou', 'u', 'urwelc', 'v', 'w', 'x', 'y', 'yes', 'z']
         self.camera: Camera = Camera()
         self.hands: Hands = Hands()
@@ -25,9 +25,9 @@ class Inference:
 
         self.SM_WND = 2
         self.AC_THR = 1
-        self.out_buf = deque(maxlen=self.SM_WND)
-        self.pre_buf = deque(maxlen=self.AC_THR)
-        self.last_conf_label = "Idle"
+        self.output_buffer = deque(maxlen=self.SM_WND)
+        self.prediction_buffer = deque(maxlen=self.AC_THR)
+        self.last_confirmed_label = "Idle"
 
         logging.basicConfig(
             level=logging.INFO,
@@ -65,24 +65,24 @@ class Inference:
                     self.interpreter.invoke()
                     output = self.interpreter.get_tensor(output_details[0]['index'])[0]
 
-                    self.out_buf.append(output)
-                    smoothed_out = np.mean(self.out_buf, axis=0)
-                    pred_idx = int(np.argmax(smoothed_out))
-                    self.pre_buf.append(pred_idx)
+                    self.output_buffer.append(output)
+                    smoothed_out = np.mean(self.output_buffer, axis=0)
+                    prediction_index = int(np.argmax(smoothed_out))
+                    self.prediction_buffer.append(prediction_index)
                                         
-                    if len(self.pre_buf) == self.AC_THR:
-                        most_common, freq = Counter(self.pre_buf).most_common(1)[0]
+                    if len(self.prediction_buffer) == self.AC_THR:
+                        most_common, freq = Counter(self.prediction_buffer).most_common(1)[0]
                         if freq >= self.AC_THR:
-                            self.last_conf_label = self.labels[most_common]
-                        self.pre_buf.clear()
+                            self.last_confirmed_label = self.labels[most_common]
+                        self.prediction_buffer.clear()
 
                     self.sequence.reset()
                 
             else:
                 self.sequence.reset()
-                self.out_buf.clear()
-                self.pre_buf.clear()
-                self.last_conf_label = "Idle"
+                self.output_buffer.clear()
+                self.prediction_buffer.clear()
+                self.last_confirmed_label = "Idle"
 
             if draw_boundbox and hand_present:
                 for hand_landmarks in results.multi_hand_landmarks:
@@ -93,8 +93,8 @@ class Inference:
                     x2, y2 = np.max(lm_px, axis=0)
 
                     cv2.rectangle(frame, (x1-10, y1-10), (x2+10, y2+10), (0, 255, 0), 2) # type: ignore
-                    label_txt = f"{self.last_conf_label}"
-                    if self.last_conf_label != "Idle":
+                    label_txt = f"{self.last_confirmed_label}"
+                    if self.last_confirmed_label != "Idle":
                         confidence = np.max(smoothed_out)
                         label_txt += f" ({confidence * 100:.1f}%)"
                     self.put_text_with_background(frame, label_txt, (x1, y1 - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), (0, 255, 0), 2) # type: ignore
@@ -124,5 +124,6 @@ class Inference:
         cv2.putText(img, text, org, font, font_scale, text_color, thickness) # type: ignore
 
 if __name__ == '__main__':
+    print("The app is being loaded. Please wait.")
     instance = Inference()
     instance.main()

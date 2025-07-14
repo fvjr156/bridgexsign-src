@@ -3,7 +3,7 @@ from numpy_array_file import NumpyArrayFile
 from numpy_file_procs import NumpyFileProcs
 
 if __name__ == '__main__':
-    file_procs_instance = NumpyFileProcs("data copy/landmark_sequences")
+    file_procs_instance = NumpyFileProcs("data/landmark_sequences")
     file_procs_instance.create_file_objs()
 
     hand_mirror = HandMirror()

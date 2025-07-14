@@ -12,7 +12,7 @@ class Hands:
         self.mp_drawing = mp.solutions.drawing_utils # type: ignore
 
         self.hands = self.mp_hands.Hands(
-            max_num_hands = 2, min_tracking_confidence = 0.5, min_detection_confidence = 0.7
+            max_num_hands = 2, min_tracking_confidence = 0.8, min_detection_confidence = 0.8
         )
 
     @property
@@ -95,38 +95,40 @@ class Hands:
         return [self._compute_angle(landmarks[a], landmarks[b], landmarks[c]) for a, b, c in indices]
 
     def extract_all_hand_features(self, results, image_shape):
-        frame_vector = []
+        left_hand = np.zeros(73, dtype=np.float32)
+        right_hand = np.zeros(73, dtype=np.float32)
 
         if not results.multi_hand_landmarks:
-            return np.zeros(146, dtype = np.float32)
-        
-        hands_data = []
+            return np.concatenate([left_hand, right_hand])  # when no hands
+
         for idx, lm in enumerate(results.multi_hand_landmarks):
             landmarks = np.array([[l.x, l.y, l.z] for l in lm.landmark])
             label = results.multi_handedness[idx].classification[0].label
-            hands_data.append((label, landmarks))
-
-        sorted_hands_data = sorted(hands_data, key = lambda x: x[0]) # hands data always ordered -> Left, Right
-
-        for label, landmarks in sorted_hands_data:
             features = self._extract_hand_features(landmarks, label)
-            frame_vector.append(features)
+            assert features.shape == (73,), f"{label} hand feature shape invalid: {features.shape}"
 
-        while len(frame_vector) < 2:
-            frame_vector.append(np.zeros_like(frame_vector[0]))
+            if label == "Left":
+                left_hand = features
+            elif label == "Right":
+                right_hand = features
 
-        return np.concatenate(frame_vector)
+        return np.concatenate([left_hand, right_hand])
 
     def _extract_hand_features(self, landmarks, hand_label):
-        flattened_landmark = landmarks.flatten()
-        normal = self._compute_palm_normal_vector(landmarks, hand_label)
-        pitch, yaw = self._palm_orientation_angles(normal)
-        finger_angles = self._compute_finger_angles(landmarks)
+            # the hand features:
+            # - 21 landmarks * 3 = 63
+            # - palm normal vector = 3
+            # - pitch + yaw = 2
+            # - 5 finger angles = 5
+            flattened_landmark = landmarks.flatten()  # 63
+            normal = self._compute_palm_normal_vector(landmarks, hand_label)  # 3
+            pitch, yaw = self._palm_orientation_angles(normal)  # 2
+            finger_angles = self._compute_finger_angles(landmarks)  # 5
 
-        return np.concatenate([
-            flattened_landmark,
-            normal,
-            [pitch, yaw],
-            finger_angles
-        ])
+            return np.concatenate([     # this retuens:
+                flattened_landmark,     # (63,)
+                normal,                 # (3,)
+                [pitch, yaw],           # (2,)
+                finger_angles           # (5,)
+            ])
 

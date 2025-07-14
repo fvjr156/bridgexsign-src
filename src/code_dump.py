@@ -1,13 +1,18 @@
 import os
+from datetime import datetime
 from pathlib import Path
 
 def main():
     # Get user input for the directory and output file name
     dir_path = input("Enter the relative path to the directory containing .py and .json files: ")
-    output_file_name = input("Enter the name of the output file (e.g., dump.txt): ")
+    output_file_name = input("Enter the name of the output file (e.g., dump): ") or "dump"
 
     directory = Path(dir_path)
-    output_file = Path(output_file_name)
+    now = datetime.now()
+    datetime_str = now.strftime("%Y%m%d-%H%M%S")
+    output_file = Path(f"{output_file_name}_{datetime_str}.txt")
+    print(output_file)
+
 
     if not directory.exists() or not directory.is_dir():
         print("Error: The specified directory does not exist or is not a directory.")
@@ -18,7 +23,7 @@ def main():
             for root, _, files in os.walk(directory):
                 for file in files:
                     file_path = Path(root) / file
-                    if file_path.suffix in ('.py', '.json'):
+                    if file_path.suffix in ('.py', '.json', '.kt', '.java', '.tsx'):
                         try:
                             writer.write(f"===== {file_path.name} =====\n")
                             with open(file_path, 'r', encoding='utf-8') as reader:

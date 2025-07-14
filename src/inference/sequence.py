@@ -3,7 +3,7 @@ import numpy as np
 class Sequence:
     def __init__(self):
         self.reset()
-        self.sequence_length = 30
+        self.sequence_length = 20
 
     def reset(self):
         self.sequence = []
@@ -16,3 +16,4 @@ class Sequence:
     
     def get_sequence(self):
         return np.array(self.sequence)
+    

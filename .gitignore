@@ -6,3 +6,4 @@ src/data_augmentation/__pycache__
 data/
 data-old/
 models/
+docs/
